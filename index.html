@@ -37,14 +37,15 @@
       <section class="card">
         <h2>2. Assinar direto no PDF</h2>
         <div class="tool-grid">
-          <button id="penTool" class="btn primary active-tool">✍️ Caneta</button>
+          <button id="penTool" class="btn primary">✍️ Caneta</button>
           <button id="eraserTool" class="btn ghost">🧽 Borracha</button>
           <button id="undoStroke" class="btn ghost">↩️ Desfazer</button>
+          <button id="guideTool" class="btn ghost">▣ Assinatura guiada</button>
           <button id="clearPage" class="btn danger">Limpar página</button>
         </div>
         <label class="control-label">Espessura da caneta</label>
         <input id="brushSize" type="range" min="1" max="10" value="3" />
-        <p class="hint">Ative a caneta e assine diretamente em cima do PDF. Use a borracha para apagar partes da assinatura.</p>
+        <p class="hint">Por segurança, o app só assina quando a caneta estiver ativada. No celular, use Assinatura Guiada para assinar com mais precisão.</p>
       </section>
 
       <section class="card">
@@ -81,6 +82,7 @@
           <div id="pdfStage" class="pdf-stage">
             <canvas id="pdfCanvas"></canvas>
             <canvas id="drawCanvas"></canvas>
+            <div id="guideBox" class="guide-box hidden"><span>Assine aqui</span><b></b></div>
           </div>
         </div>
       </div>

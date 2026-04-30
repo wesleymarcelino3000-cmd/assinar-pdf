@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#0057d9" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Assinar PDF" />
+  <title>Assinar PDF Pro</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" type="image/png" sizes="32x32" href="icons/icon-32.png" />
+  <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png" />
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <img src="icons/icon-192.png" alt="PDF Sign Pro" />
+        <div>
+          <h1>PDF Sign Pro</h1>
+          <p>Assine PDFs com segurança no navegador</p>
+        </div>
+      </div>
+
+      <section class="card">
+        <h2>1. PDF</h2>
+        <label class="file-btn">
+          <input id="pdfInput" type="file" accept="application/pdf" />
+          Importar PDF
+        </label>
+        <div id="pdfInfo" class="hint">Nenhum PDF carregado.</div>
+      </section>
+
+      <section class="card">
+        <h2>2. Criar assinatura</h2>
+        <canvas id="signaturePad" width="520" height="220"></canvas>
+        <div class="row">
+          <button id="clearSignature" class="btn ghost">Limpar</button>
+          <button id="saveSignature" class="btn primary">Salvar assinatura</button>
+        </div>
+        <input id="signatureName" class="input" placeholder="Nome da assinatura. Ex: Wesley" />
+      </section>
+
+      <section class="card">
+        <h2>3. Assinaturas salvas</h2>
+        <div id="savedSignatures" class="signature-list"></div>
+      </section>
+
+      <section class="card">
+        <h2>4. Exportar</h2>
+        <div class="row stack-mobile">
+          <button id="downloadPdf" class="btn success">Baixar PDF assinado</button>
+          <button id="resetAll" class="btn danger">Limpar tudo</button>
+        </div>
+        <p class="hint">Tudo fica salvo somente neste dispositivo. Nenhum PDF é enviado para servidor.</p>
+      </section>
+    </aside>
+
+    <main class="workspace">
+      <header class="topbar">
+        <div>
+          <strong id="docTitle">Nenhum documento</strong>
+          <span id="pageStatus">Carregue um PDF para começar</span>
+        </div>
+        <div class="toolbar">
+          <button id="prevPage" class="btn small ghost">← Página</button>
+          <button id="nextPage" class="btn small ghost">Página →</button>
+          <button id="installBtn" class="btn small primary hidden">Instalar app</button>
+        </div>
+      </header>
+
+      <div class="viewer-wrap">
+        <div id="viewer" class="viewer">
+          <div class="empty-state">
+            <div class="doc-icon">✍️</div>
+            <h2>Importe um PDF</h2>
+            <p>Depois selecione uma assinatura salva e clique no documento para posicionar.</p>
+          </div>
+          <canvas id="pdfCanvas"></canvas>
+          <div id="signatureLayer"></div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <div id="toast" class="toast"></div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

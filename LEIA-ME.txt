@@ -1,0 +1,19 @@
+ASSINAR PDF PRO - VERSÃO CORRIGIDA
+
+Correções desta versão:
+- Assinatura diretamente em cima do PDF
+- Funciona com mouse, touch e caneta
+- Canvas de assinatura corrigido por cima do PDF
+- Salvamento real dentro do PDF final
+- Borracha
+- Desfazer
+- Limpar página
+- PWA instalável para Vercel
+
+Como usar:
+1. Abra o index.html ou hospede no Vercel.
+2. Importe o PDF.
+3. Assine diretamente no documento.
+4. Clique em Baixar PDF assinado.
+
+Se já hospedou uma versão anterior, depois de subir esta versão no Vercel limpe o cache do navegador ou abra em janela anônima.

@@ -220,6 +220,14 @@ $('nextPage').onclick = async () => {
   }
 };
 
+$('lastPage').onclick = async () => {
+  if (!pdfDoc) return showToast('Importe um PDF primeiro.');
+  if (currentPage === pdfDoc.numPages) return showToast('Você já está na última página.');
+  currentPage = pdfDoc.numPages;
+  await renderPage();
+  showToast('Última página aberta.');
+};
+
 function pageHasStrokes() {
   return Object.values(strokesByPage).some((strokes) => strokes && strokes.length);
 }

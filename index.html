@@ -77,10 +77,12 @@
           <div class="empty-state">
             <div class="doc-icon">✍️</div>
             <h2>Importe um PDF</h2>
-            <p>Depois selecione uma assinatura salva e clique no documento para posicionar.</p>
+            <p>Depois selecione uma assinatura salva, clique onde deseja assinar e arraste livremente.</p>
           </div>
-          <canvas id="pdfCanvas"></canvas>
-          <div id="signatureLayer"></div>
+          <div id="pdfStage" class="pdf-stage">
+            <canvas id="pdfCanvas"></canvas>
+            <div id="signatureLayer"></div>
+          </div>
         </div>
       </div>
     </main>

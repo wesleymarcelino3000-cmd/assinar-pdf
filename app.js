@@ -1,34 +1,289 @@
-pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-const $=id=>document.getElementById(id);
-const pdfInput=$('pdfInput'),pdfInfo=$('pdfInfo'),docTitle=$('docTitle'),pageStatus=$('pageStatus');
-const pdfCanvas=$('pdfCanvas'),pdfStage=$('pdfStage'),signatureLayer=$('signatureLayer');
-const sigPad=$('signaturePad'),sigName=$('signatureName'),savedBox=$('savedSignatures'),ctx=sigPad.getContext('2d'),toast=$('toast');
-let pdfBytes=null,pdfDoc=null,currentPage=1,scale=1.35,selectedSignature=null,placed=[],drawing=false,last=null,deferredPrompt=null;
-const pageViewports=new Map();
-function showToast(msg){toast.textContent=msg;toast.classList.add('show');setTimeout(()=>toast.classList.remove('show'),2600)}
-function storage(){return JSON.parse(localStorage.getItem('pdfSignaturesPro')||'[]')}
-function saveStorage(items){localStorage.setItem('pdfSignaturesPro',JSON.stringify(items))}
-function uuid(){return crypto.randomUUID?crypto.randomUUID():Date.now()+'-'+Math.random()}
-function setupPad(){ctx.fillStyle='#fff';ctx.fillRect(0,0,sigPad.width,sigPad.height);ctx.strokeStyle='#0f172a';ctx.lineWidth=4;ctx.lineCap='round';ctx.lineJoin='round'}
-function padPoint(e){const r=sigPad.getBoundingClientRect(),p=e.touches?e.touches[0]:e;return{x:(p.clientX-r.left)*(sigPad.width/r.width),y:(p.clientY-r.top)*(sigPad.height/r.height)}}
-function startDraw(e){e.preventDefault();drawing=true;last=padPoint(e)}
-function moveDraw(e){if(!drawing)return;e.preventDefault();const p=padPoint(e);ctx.beginPath();ctx.moveTo(last.x,last.y);ctx.lineTo(p.x,p.y);ctx.stroke();last=p}
-function endDraw(){drawing=false;last=null}
-sigPad.addEventListener('mousedown',startDraw);sigPad.addEventListener('mousemove',moveDraw);window.addEventListener('mouseup',endDraw);
-sigPad.addEventListener('touchstart',startDraw,{passive:false});sigPad.addEventListener('touchmove',moveDraw,{passive:false});sigPad.addEventListener('touchend',endDraw);
-$('clearSignature').onclick=()=>{setupPad();showToast('Assinatura limpa.')};
-$('saveSignature').onclick=()=>{const dataUrl=sigPad.toDataURL('image/png'),items=storage(),name=sigName.value.trim()||`Assinatura ${items.length+1}`;items.unshift({id:uuid(),name,dataUrl,createdAt:new Date().toISOString()});saveStorage(items);selectedSignature=items[0];sigName.value='';setupPad();renderSignatures();showToast('Assinatura salva e selecionada.')};
-function renderSignatures(){const items=storage();savedBox.innerHTML='';if(!items.length){savedBox.innerHTML='<p class="hint">Nenhuma assinatura salva ainda.</p>';return}items.forEach(item=>{const el=document.createElement('div');el.className='sig-item'+(selectedSignature?.id===item.id?' active':'');el.innerHTML=`<div><div class="sig-name">${item.name}</div><img src="${item.dataUrl}" alt="${item.name}"></div><button class="btn small danger">Excluir</button>`;el.querySelector('img').onclick=()=>{selectedSignature=item;renderSignatures();showToast('Agora clique no PDF exatamente onde deseja assinar.')};el.querySelector('button').onclick=()=>{saveStorage(items.filter(s=>s.id!==item.id));if(selectedSignature?.id===item.id)selectedSignature=null;renderSignatures()};savedBox.appendChild(el)})}
-pdfInput.onchange=async e=>{const file=e.target.files[0];if(!file)return;pdfBytes=await file.arrayBuffer();pdfDoc=await pdfjsLib.getDocument({data:pdfBytes.slice(0)}).promise;currentPage=1;placed=[];pageViewports.clear();docTitle.textContent=file.name;pdfInfo.textContent=`${file.name} • ${pdfDoc.numPages} página(s)`;await renderPage();showToast('PDF carregado. Selecione uma assinatura e clique onde quiser assinar.')};
-async function renderPage(){if(!pdfDoc)return;const page=await pdfDoc.getPage(currentPage),viewport=page.getViewport({scale});pageViewports.set(currentPage,{width:viewport.width,height:viewport.height});const dpr=window.devicePixelRatio||1;pdfCanvas.width=viewport.width*dpr;pdfCanvas.height=viewport.height*dpr;pdfCanvas.style.width=viewport.width+'px';pdfCanvas.style.height=viewport.height+'px';pdfStage.style.width=viewport.width+'px';pdfStage.style.height=viewport.height+'px';const c=pdfCanvas.getContext('2d');c.setTransform(dpr,0,0,dpr,0,0);await page.render({canvasContext:c,viewport}).promise;pdfCanvas.style.display='block';pdfStage.style.display='block';document.querySelector('.empty-state')?.remove();signatureLayer.style.width=viewport.width+'px';signatureLayer.style.height=viewport.height+'px';pageStatus.textContent=`Página ${currentPage} de ${pdfDoc.numPages}`;redrawPlaced()}
-$('prevPage').onclick=async()=>{if(pdfDoc&&currentPage>1){currentPage--;await renderPage()}};
-$('nextPage').onclick=async()=>{if(pdfDoc&&currentPage<pdfDoc.numPages){currentPage++;await renderPage()}};
-signatureLayer.addEventListener('pointerdown',e=>{if(!pdfDoc||!selectedSignature||e.target.closest('.placed-signature'))return;e.preventDefault();const r=signatureLayer.getBoundingClientRect(),baseW=Math.min(220,Math.max(130,r.width*.28)),baseH=baseW*.38,x=Math.max(0,Math.min(e.clientX-r.left-baseW/2,r.width-baseW)),y=Math.max(0,Math.min(e.clientY-r.top-baseH/2,r.height-baseH));placed.push({id:uuid(),page:currentPage,dataUrl:selectedSignature.dataUrl,x,y,w:baseW,h:baseH,canvasW:r.width,canvasH:r.height});redrawPlaced();showToast('Assinatura adicionada. Arraste ou puxe o canto para ajustar.')});
-function redrawPlaced(){signatureLayer.innerHTML='';const vp=pageViewports.get(currentPage);placed.filter(p=>p.page===currentPage).forEach(p=>{if(vp&&p.canvasW&&p.canvasH&&(p.canvasW!==vp.width||p.canvasH!==vp.height)){p.x=p.x/p.canvasW*vp.width;p.y=p.y/p.canvasH*vp.height;p.w=p.w/p.canvasW*vp.width;p.h=p.h/p.canvasH*vp.height;p.canvasW=vp.width;p.canvasH=vp.height}const el=document.createElement('div');el.className='placed-signature';el.style.left=p.x+'px';el.style.top=p.y+'px';el.style.width=p.w+'px';el.style.height=p.h+'px';el.innerHTML=`<img src="${p.dataUrl}" draggable="false"><button class="remove" title="Remover">×</button><span class="resize-handle" title="Redimensionar"></span>`;el.querySelector('.remove').onclick=ev=>{ev.stopPropagation();placed=placed.filter(x=>x.id!==p.id);redrawPlaced()};makeFreeSignature(el,p);signatureLayer.appendChild(el)})}
-function makeFreeSignature(el,p){let mode=null,startX=0,startY=0,startLeft=0,startTop=0,startW=0,startH=0;const clamp=(n,min,max)=>Math.max(min,Math.min(n,max));el.addEventListener('pointerdown',e=>{if(e.target.classList.contains('remove'))return;e.preventDefault();e.stopPropagation();mode=e.target.classList.contains('resize-handle')?'resize':'drag';startX=e.clientX;startY=e.clientY;startLeft=p.x;startTop=p.y;startW=p.w;startH=p.h;el.setPointerCapture(e.pointerId);el.classList.add('editing')});el.addEventListener('pointermove',e=>{if(!mode)return;e.preventDefault();const r=signatureLayer.getBoundingClientRect(),dx=e.clientX-startX,dy=e.clientY-startY;if(mode==='drag'){p.x=clamp(startLeft+dx,0,r.width-p.w);p.y=clamp(startTop+dy,0,r.height-p.h);el.style.left=p.x+'px';el.style.top=p.y+'px'}else{p.w=clamp(startW+dx,70,r.width-p.x);p.h=clamp(startH+dy,30,r.height-p.y);el.style.width=p.w+'px';el.style.height=p.h+'px'}p.canvasW=r.width;p.canvasH=r.height});function end(){if(!mode)return;mode=null;el.classList.remove('editing')}el.addEventListener('pointerup',end);el.addEventListener('pointercancel',end)}
-$('downloadPdf').onclick=async()=>{if(!pdfBytes)return showToast('Importe um PDF primeiro.');if(!placed.length)return showToast('Posicione pelo menos uma assinatura.');const pdf=await PDFLib.PDFDocument.load(pdfBytes.slice(0)),pages=pdf.getPages();for(const p of placed){const png=await pdf.embedPng(p.dataUrl),page=pages[p.page-1],{width,height}=page.getSize(),vp=pageViewports.get(p.page)||{width:p.canvasW||parseFloat(pdfCanvas.style.width),height:p.canvasH||parseFloat(pdfCanvas.style.height)},x=(p.x/vp.width)*width,y=height-((p.y+p.h)/vp.height)*height;page.drawImage(png,{x,y,width:(p.w/vp.width)*width,height:(p.h/vp.height)*height})}const out=await pdf.save(),blob=new Blob([out],{type:'application/pdf'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='pdf-assinado.pdf';a.click();URL.revokeObjectURL(a.href);showToast('PDF assinado baixado.')};
-$('resetAll').onclick=()=>{pdfBytes=null;pdfDoc=null;placed=[];currentPage=1;location.reload()};
-window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;$('installBtn').classList.remove('hidden')});
-$('installBtn').onclick=async()=>{if(!deferredPrompt)return;deferredPrompt.prompt();await deferredPrompt.userChoice;deferredPrompt=null;$('installBtn').classList.add('hidden')};
-if('serviceWorker'in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('/sw.js'))}
-setupPad();renderSignatures();
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+const $ = (id) => document.getElementById(id);
+const pdfInput = $('pdfInput');
+const pdfInfo = $('pdfInfo');
+const docTitle = $('docTitle');
+const pageStatus = $('pageStatus');
+const pdfCanvas = $('pdfCanvas');
+const drawCanvas = $('drawCanvas');
+const pdfStage = $('pdfStage');
+const toast = $('toast');
+const penTool = $('penTool');
+const eraserTool = $('eraserTool');
+const brushSize = $('brushSize');
+
+let pdfBytes = null;
+let pdfDoc = null;
+let currentPage = 1;
+let scale = 1.35;
+let tool = 'pen';
+let drawing = false;
+let activeStroke = null;
+let deferredPrompt = null;
+let originalFileName = 'pdf-assinado.pdf';
+
+// Estrutura: { [pageNumber]: [ { tool, widthNorm, points:[{x,y}] } ] }
+const strokesByPage = {};
+const pageViewports = new Map();
+
+function showToast(msg) {
+  toast.textContent = msg;
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 2600);
+}
+
+function setTool(nextTool) {
+  tool = nextTool;
+  penTool.classList.toggle('active-tool', tool === 'pen');
+  eraserTool.classList.toggle('active-tool', tool === 'eraser');
+  drawCanvas.classList.toggle('eraser-mode', tool === 'eraser');
+  showToast(tool === 'pen' ? 'Caneta ativada.' : 'Borracha ativada.');
+}
+
+penTool.onclick = () => setTool('pen');
+eraserTool.onclick = () => setTool('eraser');
+
+pdfInput.onchange = async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  pdfBytes = await file.arrayBuffer();
+  pdfDoc = await pdfjsLib.getDocument({ data: pdfBytes.slice(0) }).promise;
+  currentPage = 1;
+  originalFileName = file.name.replace(/\.pdf$/i, '') + '-assinado.pdf';
+  Object.keys(strokesByPage).forEach((key) => delete strokesByPage[key]);
+  pageViewports.clear();
+  docTitle.textContent = file.name;
+  pdfInfo.textContent = `${file.name} • ${pdfDoc.numPages} página(s)`;
+  await renderPage();
+  showToast('PDF carregado. Assine diretamente em cima do documento.');
+};
+
+async function renderPage() {
+  if (!pdfDoc) return;
+  const page = await pdfDoc.getPage(currentPage);
+  const viewport = page.getViewport({ scale });
+  pageViewports.set(currentPage, { width: viewport.width, height: viewport.height });
+
+  const dpr = window.devicePixelRatio || 1;
+  pdfCanvas.width = Math.round(viewport.width * dpr);
+  pdfCanvas.height = Math.round(viewport.height * dpr);
+  pdfCanvas.style.width = viewport.width + 'px';
+  pdfCanvas.style.height = viewport.height + 'px';
+
+  drawCanvas.width = Math.round(viewport.width * dpr);
+  drawCanvas.height = Math.round(viewport.height * dpr);
+  drawCanvas.style.width = viewport.width + 'px';
+  drawCanvas.style.height = viewport.height + 'px';
+
+  pdfStage.style.width = viewport.width + 'px';
+  pdfStage.style.height = viewport.height + 'px';
+  pdfStage.style.display = 'block';
+  pdfCanvas.style.display = 'block';
+  drawCanvas.style.display = 'block';
+
+  const ctx = pdfCanvas.getContext('2d');
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  await page.render({ canvasContext: ctx, viewport }).promise;
+
+  document.querySelector('.empty-state')?.remove();
+  pageStatus.textContent = `Página ${currentPage} de ${pdfDoc.numPages}`;
+  redrawCurrentPage();
+}
+
+function getPoint(e) {
+  const r = drawCanvas.getBoundingClientRect();
+  return {
+    x: Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)),
+    y: Math.max(0, Math.min(1, (e.clientY - r.top) / r.height)),
+  };
+}
+
+function getCurrentBrushWidthNorm() {
+  const r = drawCanvas.getBoundingClientRect();
+  const px = Number(brushSize.value || 5);
+  return px / Math.max(1, r.width);
+}
+
+function startStroke(e) {
+  if (!pdfDoc) return;
+  e.preventDefault();
+  drawCanvas.setPointerCapture?.(e.pointerId);
+  drawing = true;
+  const p = getPoint(e);
+  activeStroke = {
+    tool,
+    widthNorm: tool === 'eraser' ? getCurrentBrushWidthNorm() * 3.1 : getCurrentBrushWidthNorm(),
+    points: [p],
+  };
+  if (!strokesByPage[currentPage]) strokesByPage[currentPage] = [];
+  strokesByPage[currentPage].push(activeStroke);
+  redrawCurrentPage();
+}
+
+function moveStroke(e) {
+  if (!drawing || !activeStroke) return;
+  e.preventDefault();
+  activeStroke.points.push(getPoint(e));
+  redrawCurrentPage();
+}
+
+function endStroke(e) {
+  if (!drawing) return;
+  e?.preventDefault?.();
+  drawing = false;
+  activeStroke = null;
+}
+
+drawCanvas.addEventListener('pointerdown', startStroke);
+drawCanvas.addEventListener('pointermove', moveStroke);
+drawCanvas.addEventListener('pointerup', endStroke);
+drawCanvas.addEventListener('pointercancel', endStroke);
+drawCanvas.addEventListener('pointerleave', endStroke);
+
+function drawStrokeOnCanvas(ctx, stroke, width, height) {
+  const pts = stroke.points;
+  if (!pts || !pts.length) return;
+
+  ctx.save();
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  ctx.lineWidth = Math.max(1, stroke.widthNorm * width);
+
+  if (stroke.tool === 'eraser') {
+    ctx.globalCompositeOperation = 'destination-out';
+    ctx.strokeStyle = 'rgba(0,0,0,1)';
+  } else {
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.strokeStyle = '#020617';
+  }
+
+  ctx.beginPath();
+  ctx.moveTo(pts[0].x * width, pts[0].y * height);
+  if (pts.length === 1) {
+    ctx.lineTo(pts[0].x * width + 0.1, pts[0].y * height + 0.1);
+  } else {
+    for (let i = 1; i < pts.length; i++) {
+      const prev = pts[i - 1];
+      const cur = pts[i];
+      const midX = ((prev.x + cur.x) / 2) * width;
+      const midY = ((prev.y + cur.y) / 2) * height;
+      ctx.quadraticCurveTo(prev.x * width, prev.y * height, midX, midY);
+    }
+    const last = pts[pts.length - 1];
+    ctx.lineTo(last.x * width, last.y * height);
+  }
+  ctx.stroke();
+  ctx.restore();
+}
+
+function redrawCurrentPage() {
+  const dpr = window.devicePixelRatio || 1;
+  const w = drawCanvas.width;
+  const h = drawCanvas.height;
+  const ctx = drawCanvas.getContext('2d');
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.clearRect(0, 0, w, h);
+  const strokes = strokesByPage[currentPage] || [];
+  for (const stroke of strokes) {
+    drawStrokeOnCanvas(ctx, stroke, w, h);
+  }
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+
+$('undoStroke').onclick = () => {
+  const strokes = strokesByPage[currentPage] || [];
+  if (!strokes.length) return showToast('Nada para desfazer nesta página.');
+  strokes.pop();
+  redrawCurrentPage();
+  showToast('Último traço desfeito.');
+};
+
+$('clearPage').onclick = () => {
+  if (!pdfDoc) return showToast('Importe um PDF primeiro.');
+  strokesByPage[currentPage] = [];
+  redrawCurrentPage();
+  showToast('Assinaturas desta página apagadas.');
+};
+
+$('prevPage').onclick = async () => {
+  if (pdfDoc && currentPage > 1) {
+    currentPage--;
+    await renderPage();
+  }
+};
+
+$('nextPage').onclick = async () => {
+  if (pdfDoc && currentPage < pdfDoc.numPages) {
+    currentPage++;
+    await renderPage();
+  }
+};
+
+function pageHasStrokes() {
+  return Object.values(strokesByPage).some((strokes) => strokes && strokes.length);
+}
+
+function renderOverlayForPage(pageNumber, width, height) {
+  const canvas = document.createElement('canvas');
+  const multiplier = 2;
+  canvas.width = Math.round(width * multiplier);
+  canvas.height = Math.round(height * multiplier);
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  const strokes = strokesByPage[pageNumber] || [];
+  for (const stroke of strokes) {
+    drawStrokeOnCanvas(ctx, stroke, canvas.width, canvas.height);
+  }
+  return canvas;
+}
+
+$('downloadPdf').onclick = async () => {
+  if (!pdfBytes) return showToast('Importe um PDF primeiro.');
+  if (!pageHasStrokes()) return showToast('Assine diretamente no PDF antes de baixar.');
+
+  const pdf = await PDFLib.PDFDocument.load(pdfBytes.slice(0));
+  const pages = pdf.getPages();
+
+  for (let i = 0; i < pages.length; i++) {
+    const pageNumber = i + 1;
+    const strokes = strokesByPage[pageNumber] || [];
+    if (!strokes.length) continue;
+
+    const page = pages[i];
+    const { width, height } = page.getSize();
+    const overlayCanvas = renderOverlayForPage(pageNumber, width, height);
+    const pngDataUrl = overlayCanvas.toDataURL('image/png');
+    const png = await pdf.embedPng(pngDataUrl);
+    page.drawImage(png, { x: 0, y: 0, width, height });
+  }
+
+  const out = await pdf.save();
+  const blob = new Blob([out], { type: 'application/pdf' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = originalFileName;
+  a.click();
+  URL.revokeObjectURL(a.href);
+  showToast('PDF assinado baixado.');
+};
+
+$('resetAll').onclick = () => location.reload();
+
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  $('installBtn').classList.remove('hidden');
+});
+
+$('installBtn').onclick = async () => {
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  await deferredPrompt.userChoice;
+  deferredPrompt = null;
+  $('installBtn').classList.add('hidden');
+};
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js'));
+}

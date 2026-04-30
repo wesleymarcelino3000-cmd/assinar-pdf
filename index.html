@@ -21,7 +21,7 @@
         <img src="icons/icon-192.png" alt="PDF Sign Pro" />
         <div>
           <h1>PDF Sign Pro</h1>
-          <p>Assine PDFs com segurança no navegador</p>
+          <p>Assine direto no PDF com dedo, mouse ou caneta.</p>
         </div>
       </div>
 
@@ -35,27 +35,25 @@
       </section>
 
       <section class="card">
-        <h2>2. Criar assinatura</h2>
-        <canvas id="signaturePad" width="520" height="220"></canvas>
-        <div class="row">
-          <button id="clearSignature" class="btn ghost">Limpar</button>
-          <button id="saveSignature" class="btn primary">Salvar assinatura</button>
+        <h2>2. Assinar direto no PDF</h2>
+        <div class="tool-grid">
+          <button id="penTool" class="btn primary active-tool">✍️ Caneta</button>
+          <button id="eraserTool" class="btn ghost">🧽 Borracha</button>
+          <button id="undoStroke" class="btn ghost">↩️ Desfazer</button>
+          <button id="clearPage" class="btn danger">Limpar página</button>
         </div>
-        <input id="signatureName" class="input" placeholder="Nome da assinatura. Ex: Wesley" />
+        <label class="control-label">Espessura da caneta</label>
+        <input id="brushSize" type="range" min="2" max="14" value="5" />
+        <p class="hint">Ative a caneta e assine diretamente em cima do PDF. Use a borracha para apagar partes da assinatura.</p>
       </section>
 
       <section class="card">
-        <h2>3. Assinaturas salvas</h2>
-        <div id="savedSignatures" class="signature-list"></div>
-      </section>
-
-      <section class="card">
-        <h2>4. Exportar</h2>
+        <h2>3. Exportar</h2>
         <div class="row stack-mobile">
           <button id="downloadPdf" class="btn success">Baixar PDF assinado</button>
           <button id="resetAll" class="btn danger">Limpar tudo</button>
         </div>
-        <p class="hint">Tudo fica salvo somente neste dispositivo. Nenhum PDF é enviado para servidor.</p>
+        <p class="hint">Tudo acontece no seu navegador. O PDF não é enviado para servidor.</p>
       </section>
     </aside>
 
@@ -77,11 +75,11 @@
           <div class="empty-state">
             <div class="doc-icon">✍️</div>
             <h2>Importe um PDF</h2>
-            <p>Depois selecione uma assinatura salva, clique onde deseja assinar e arraste livremente.</p>
+            <p>Depois desenhe sua assinatura diretamente onde quiser no documento.</p>
           </div>
           <div id="pdfStage" class="pdf-stage">
             <canvas id="pdfCanvas"></canvas>
-            <div id="signatureLayer"></div>
+            <canvas id="drawCanvas"></canvas>
           </div>
         </div>
       </div>

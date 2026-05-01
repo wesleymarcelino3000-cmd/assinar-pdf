@@ -12,6 +12,7 @@ const pdfStage = $('pdfStage');
 const toast = $('toast');
 const penTool = $('penTool');
 const eraserTool = $('eraserTool');
+const stampTool = $('stampTool');
 const guideTool = $('guideTool');
 const guideBox = $('guideBox');
 const brushSize = $('brushSize');
@@ -82,9 +83,12 @@ function setTool(nextTool) {
   tool = tool === nextTool ? 'none' : nextTool;
   penTool.classList.toggle('active-tool', tool === 'pen');
   eraserTool.classList.toggle('active-tool', tool === 'eraser');
+  if (stampTool) stampTool.classList.toggle('active-tool', tool === 'stamp');
   drawCanvas.classList.toggle('eraser-mode', tool === 'eraser');
+  drawCanvas.classList.toggle('stamp-enabled', tool === 'stamp');
   drawCanvas.classList.toggle('pen-enabled', tool !== 'none');
-  showToast(tool === 'none' ? 'Caneta desativada. O PDF está protegido contra toque acidental.' : (tool === 'pen' ? 'Caneta ativada.' : 'Borracha ativada.'));
+  const msg = tool === 'none' ? 'Ferramentas desativadas. O PDF está protegido contra toque acidental.' : (tool === 'pen' ? 'Caneta ativada.' : (tool === 'eraser' ? 'Borracha ativada.' : 'Carimbo ativado. Toque no PDF para aplicar.'));
+  showToast(msg);
 }
 
 function setGuidedMode(force) {
@@ -97,6 +101,12 @@ function setGuidedMode(force) {
 
 penTool.onclick = () => setTool('pen');
 eraserTool.onclick = () => setTool('eraser');
+if (stampTool) stampTool.onclick = () => {
+  if (!pdfDoc) return showToast('Importe um PDF primeiro.');
+  const stamp = stamps.find((s) => s.id === selectedStampId) || stamps[0];
+  if (!stamp) return showToast('Crie ou selecione um carimbo primeiro.');
+  setTool('stamp');
+};
 guideTool.onclick = () => {
   if (!pdfDoc) return showToast('Importe um PDF primeiro.');
   setGuidedMode();
@@ -171,10 +181,21 @@ function getCurrentBrushWidthNorm() {
   return px / Math.max(1, r.width);
 }
 
+function addStampAtPoint(p) {
+  const stamp = stamps.find((s) => s.id === selectedStampId) || stamps[0];
+  if (!stamp) { showToast('Crie ou selecione um carimbo primeiro.'); return; }
+  if (!placedStampsByPage[currentPage]) placedStampsByPage[currentPage] = [];
+  const w = 0.34, h = 0.10;
+  placedStampsByPage[currentPage].push({ id: safeId(), stampId: stamp.id, x: Math.max(0, Math.min(1 - w, p.x - w / 2)), y: Math.max(0, Math.min(1 - h, p.y - h / 2)), w, h });
+  renderPlacedStamps();
+  showToast('Carimbo aplicado. Arraste ou redimensione se precisar.');
+}
+
 function startStroke(e) {
   if (!pdfDoc) return;
   if (tool === 'none') return;
   const p = getPoint(e);
+  if (tool === 'stamp') { e.preventDefault(); addStampAtPoint(p); return; }
   if (!inGuide(p)) return showToast('Assine dentro da área guiada.');
   e.preventDefault();
   drawCanvas.setPointerCapture?.(e.pointerId);
@@ -380,7 +401,7 @@ function renderStampList() {
     item.innerHTML = `<div>${buildStampHtml(stamp, true)}</div><button class="btn small ghost" data-use="${stamp.id}">Usar</button><button class="btn small danger" data-del="${stamp.id}">Excluir</button>`;
     stampList.appendChild(item);
   });
-  stampList.querySelectorAll('[data-use]').forEach((btn) => btn.onclick = () => { selectedStampId = btn.dataset.use; renderStampList(); showToast('Carimbo selecionado. Clique em Adicionar no PDF.'); });
+  stampList.querySelectorAll('[data-use]').forEach((btn) => btn.onclick = () => { selectedStampId = btn.dataset.use; renderStampList(); showToast('Carimbo selecionado. Ative o botão Carimbo para aplicar no PDF.'); });
   stampList.querySelectorAll('[data-del]').forEach((btn) => btn.onclick = () => {
     const idx = stamps.findIndex((s) => s.id === btn.dataset.del);
     if (idx >= 0) stamps.splice(idx, 1);
@@ -416,10 +437,8 @@ insertStampBtn.onclick = () => {
   if (!pdfDoc) return showToast('Importe um PDF primeiro.');
   const stamp = stamps.find((s) => s.id === selectedStampId) || stamps[0];
   if (!stamp) return showToast('Crie um carimbo primeiro.');
-  if (!placedStampsByPage[currentPage]) placedStampsByPage[currentPage] = [];
-  placedStampsByPage[currentPage].push({ id: safeId(), stampId: stamp.id, x: .18, y: .72, w: .34, h: .10 });
-  renderPlacedStamps();
-  showToast('Carimbo adicionado. Arraste e redimensione livremente.');
+  setTool('stamp');
+  showToast('Carimbo ativado. Toque ou clique no PDF no local onde deseja aplicar.');
 };
 
 function getPlacedStamp(pageNum, id) { return (placedStampsByPage[pageNum] || []).find((s) => s.id === id); }

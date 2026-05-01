@@ -106,3 +106,6 @@ button, input, label { -webkit-tap-highlight-color: transparent; }
 .placed-stamp .custom-stamp-layout .stamp-line{font-size:clamp(5px, var(--stamp-text-size,10px), 28px)!important;}
 .stamp-list-item .custom-stamp-layout{width:190px!important;height:92px!important;min-width:190px!important;min-height:92px!important;}
 @media(max-width:760px){.stamp-preview .custom-stamp-layout{width:210px!important;height:110px!important;min-width:210px!important;min-height:110px!important}.stamp-list-item .custom-stamp-layout{width:180px!important;height:86px!important;min-width:180px!important;min-height:86px!important}}
+
+#drawCanvas.stamp-enabled{cursor:copy;touch-action:none;}
+#stampTool.active-tool{box-shadow:0 0 0 3px rgba(34,197,94,.30),0 0 22px rgba(34,197,94,.55);}

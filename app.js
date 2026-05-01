@@ -259,7 +259,12 @@ window.addEventListener('pointermove', (e) => {
   }
   positionGuideBox();
 }, { passive: false });
-window.addEventListener('pointerup', () => { movingGuide = false; resizingGuide = false; guideStart = null; movingStamp = null; resizingStamp = null; stampStart = null; renderPlacedStamps(); });
+window.addEventListener('pointerup', () => {
+  const hadStampAction = !!(movingStamp || resizingStamp);
+  movingGuide = false; resizingGuide = false; guideStart = null;
+  movingStamp = null; resizingStamp = null; stampStart = null;
+  if (hadStampAction) renderPlacedStamps();
+});
 window.addEventListener('pointercancel', () => { movingStamp = null; resizingStamp = null; stampStart = null; });
 
 function drawStrokeOnCanvas(ctx, stroke, width, height) {
@@ -460,8 +465,27 @@ function renderPlacedStamps() {
     stampLayer.appendChild(el);
   });
   stampLayer.querySelectorAll('.placed-stamp').forEach((el) => {
+    const removeBtn = el.querySelector('.remove');
+    const resizeHandle = el.querySelector('.resize-handle');
+
     el.addEventListener('pointerdown', startMoveStamp, { passive: false });
-    el.querySelector('.remove').onclick = (ev) => { ev.stopPropagation(); removePlacedStamp(el.dataset.id); };
+
+    if (removeBtn) {
+      const removeNow = (ev) => {
+        ev.preventDefault();
+        ev.stopPropagation();
+        movingStamp = null;
+        resizingStamp = null;
+        stampStart = null;
+        removePlacedStamp(el.dataset.id);
+      };
+      removeBtn.addEventListener('pointerdown', removeNow, { passive: false });
+      removeBtn.addEventListener('click', removeNow, { passive: false });
+    }
+
+    if (resizeHandle) {
+      resizeHandle.addEventListener('pointerdown', startMoveStamp, { passive: false });
+    }
   });
 }
 function removePlacedStamp(id) {
@@ -472,15 +496,17 @@ function removePlacedStamp(id) {
 }
 function startMoveStamp(e) {
   if (!pdfDoc) return;
-  const box = e.currentTarget;
-  if (e.target.classList.contains('remove')) return;
+  const box = e.currentTarget.closest ? e.currentTarget.closest('.placed-stamp') : e.currentTarget;
+  if (!box || e.target.closest?.('.remove')) return;
   e.preventDefault();
+  e.stopPropagation();
   box.setPointerCapture?.(e.pointerId);
   const placed = getPlacedStamp(currentPage, box.dataset.id);
   if (!placed) return;
-  resizingStamp = e.target.classList.contains('resize-handle') ? placed.id : null;
+  resizingStamp = e.target.closest?.('.resize-handle') ? placed.id : null;
   movingStamp = resizingStamp ? null : placed.id;
   stampStart = { x: e.clientX, y: e.clientY, ...placed };
+  stampLayer.querySelectorAll('.placed-stamp.editing').forEach((item) => item.classList.remove('editing'));
   box.classList.add('editing');
 }
 function moveOrResizeStamp(e) {

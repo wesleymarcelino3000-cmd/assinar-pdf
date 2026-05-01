@@ -109,3 +109,11 @@ button, input, label { -webkit-tap-highlight-color: transparent; }
 
 #drawCanvas.stamp-enabled{cursor:copy;touch-action:none;}
 #stampTool.active-tool{box-shadow:0 0 0 3px rgba(34,197,94,.30),0 0 22px rgba(34,197,94,.55);}
+
+/* Correção PRO: mover/excluir carimbo no PC e celular */
+.placed-stamp, .placed-stamp *{user-select:none;-webkit-user-select:none;-webkit-user-drag:none;}
+.placed-stamp{cursor:grab;}
+.placed-stamp.editing{cursor:grabbing;}
+.placed-stamp .remove{z-index:20;pointer-events:auto;touch-action:none;}
+.placed-stamp .resize-handle{z-index:19;pointer-events:auto;touch-action:none;}
+.placed-stamp .stamp-card{pointer-events:none;}

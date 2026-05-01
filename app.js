@@ -432,47 +432,93 @@ function roundRect(ctx, x, y, w, h, r) {
 }
 async function drawStampOnCanvas(ctx, stamp, placed, width, height) {
   const x = placed.x * width, y = placed.y * height, w = placed.w * width, h = placed.h * height;
-  const shape = stamp.shape || 'rounded';
+  const shape = stamp.shape || 'real';
   const colors = getStampColors(stamp.theme);
+  const isReal = shape === 'real';
   ctx.save();
+
+  const cx = x + w / 2, cy = y + h / 2;
+  if (isReal) {
+    ctx.translate(cx, cy);
+    ctx.rotate(-0.007);
+    ctx.translate(-cx, -cy);
+    ctx.globalAlpha = .78;
+    ctx.globalCompositeOperation = 'multiply';
+  }
+
   const radius = shape === 'pill' ? h / 2 : Math.max(8, w * .035);
   roundRect(ctx, x, y, w, h, radius);
-  ctx.fillStyle = shape === 'outline' ? 'rgba(255,255,255,.70)' : colors.bg;
+  ctx.fillStyle = isReal ? 'rgba(255,255,255,0.02)' : (shape === 'outline' ? 'rgba(255,255,255,.70)' : colors.bg);
   ctx.fill();
-  ctx.lineWidth = Math.max(2, w * .012);
+  ctx.lineWidth = isReal ? Math.max(1.2, w * .010) : Math.max(2, w * .012);
   ctx.strokeStyle = colors.border;
   ctx.stroke();
-  if (shape !== 'outline') {
-    ctx.globalAlpha = .10;
-    roundRect(ctx, x + w * .025, y + h * .12, w * .95, h * .76, radius * .72);
+
+  if (isReal || shape !== 'outline') {
+    ctx.save();
+    ctx.globalAlpha = isReal ? .62 : .10;
+    roundRect(ctx, x + w * .04, y + h * .13, w * .92, h * .74, Math.max(5, radius * .68));
     ctx.strokeStyle = colors.border;
+    ctx.lineWidth = isReal ? Math.max(0.8, w * .005) : ctx.lineWidth;
     ctx.stroke();
-    ctx.globalAlpha = 1;
+    ctx.restore();
   }
-  const pad = Math.max(6, w * .045);
-  let textX = x + pad;
+
+  const pad = Math.max(6, w * .055);
+  let nextY = y + pad;
+
   if (stamp.image) {
     try {
       const img = await loadImage(stamp.image);
       if (img) {
-        const imgMaxW = stamp.text ? w * .34 : w - pad * 2;
-        const imgMaxH = h - pad * 2;
+        const imgMaxW = w * .42;
+        const imgMaxH = stamp.text ? h * .34 : h * .62;
         const ratio = Math.min(imgMaxW / img.width, imgMaxH / img.height);
         const iw = img.width * ratio, ih = img.height * ratio;
-        ctx.drawImage(img, x + pad, y + (h - ih) / 2, iw, ih);
-        textX = x + pad + iw + pad;
+        ctx.save();
+        if (isReal) {
+          ctx.globalAlpha = .64;
+          ctx.filter = 'grayscale(1) contrast(1.35)';
+        }
+        ctx.drawImage(img, x + (w - iw) / 2, nextY, iw, ih);
+        ctx.restore();
+        nextY += ih + Math.max(3, h * .055);
       }
     } catch {}
   }
+
   if (stamp.text) {
     ctx.fillStyle = colors.ink;
     ctx.textBaseline = 'middle';
-    ctx.textAlign = stamp.image ? 'left' : 'center';
-    ctx.font = '900 ' + Math.max(9, Math.min(h * .36, w * .09)) + 'px Arial, sans-serif';
-    const text = stamp.text.toUpperCase();
-    const maxW = stamp.image ? Math.max(20, x + w - pad - textX) : w - pad * 2;
-    const tx = stamp.image ? textX : x + w / 2;
-    ctx.fillText(text, tx, y + h / 2, maxW);
+    ctx.textAlign = 'center';
+    const lines = String(stamp.text).toUpperCase().split(/\s*\n\s*|\s{2,}/).filter(Boolean).slice(0, 3);
+    const fontSize = Math.max(7, Math.min(h * .20, w * .048));
+    const lineHeight = fontSize * 1.2;
+    ctx.font = (isReal ? '500 ' : '600 ') + fontSize + 'px Arial, sans-serif';
+    const totalTextH = lineHeight * lines.length;
+    let ty = stamp.image ? nextY + totalTextH / 2 - lineHeight / 2 : y + h / 2 - totalTextH / 2 + lineHeight / 2;
+    for (const line of lines) {
+      ctx.fillText(line, x + w / 2, ty, w - pad * 2);
+      ty += lineHeight;
+    }
+  }
+
+  if (isReal) {
+    ctx.globalCompositeOperation = 'destination-out';
+    const seed = Math.floor((placed.id || '').split('').reduce((a, c) => a + c.charCodeAt(0), 0));
+    for (let i = 0; i < 42; i++) {
+      const px = x + ((i * 37 + seed * 13) % 100) / 100 * w;
+      const py = y + ((i * 53 + seed * 7) % 100) / 100 * h;
+      const rw = Math.max(1, w * (.006 + ((i % 5) * .002)));
+      const rh = Math.max(1, h * (.012 + ((i % 4) * .004)));
+      ctx.globalAlpha = .09 + (i % 3) * .035;
+      ctx.fillRect(px, py, rw, rh);
+    }
+    ctx.globalAlpha = .10;
+    for (let i = 0; i < 9; i++) {
+      const yy = y + ((i + 1) / 10) * h;
+      ctx.fillRect(x + w * .05, yy, w * .90, Math.max(1, h * .006));
+    }
   }
   ctx.restore();
 }

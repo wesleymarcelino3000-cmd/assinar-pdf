@@ -48,20 +48,55 @@
         <p class="hint">Por segurança, o app só assina quando a caneta estiver ativada. No celular, use Assinatura Guiada para assinar com mais precisão.</p>
       </section>
 
-      <section class="card">
-        <h2>3. Carimbo</h2>
-        <input id="stampText" class="input" type="text" placeholder="Texto do carimbo. Ex: APROVADO" />
-        <label class="file-btn compact-file">
-          <input id="stampImageInput" type="file" accept="image/png,image/jpeg,image/webp" />
-          Adicionar imagem no carimbo
-        </label>
-        <div id="stampPreview" class="stamp-preview empty">Prévia do carimbo</div>
-        <div class="tool-grid">
-          <button id="createStamp" class="btn primary">Criar carimbo</button>
-          <button id="insertStamp" class="btn ghost">Adicionar no PDF</button>
+      <section class="card stamp-studio-card">
+        <h2>3. Estúdio de carimbo</h2>
+        <div class="stamp-studio">
+          <div class="studio-header">
+            <div>
+              <strong>Criar carimbo profissional</strong>
+              <span>Monte o carimbo antes de aplicar no PDF.</span>
+            </div>
+          </div>
+
+          <label class="control-label">Texto do carimbo</label>
+          <input id="stampText" class="input" type="text" placeholder="Ex: APROVADO, RECEBIDO, CONFERIDO" />
+
+          <label class="control-label">Imagem ou logo do carimbo</label>
+          <label class="file-btn compact-file">
+            <input id="stampImageInput" type="file" accept="image/png,image/jpeg,image/webp" />
+            Adicionar imagem no carimbo
+          </label>
+
+          <div class="stamp-editor-grid">
+            <label>Modelo
+              <select id="stampShape" class="input select-input">
+                <option value="rounded">Retangular premium</option>
+                <option value="pill">Selo arredondado</option>
+                <option value="outline">Somente contorno</option>
+              </select>
+            </label>
+            <label>Cor
+              <select id="stampTheme" class="input select-input">
+                <option value="dark">Preto profissional</option>
+                <option value="blue">Azul assinatura</option>
+                <option value="green">Verde aprovado</option>
+                <option value="red">Vermelho conferência</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="stamp-preview-wrap">
+            <span>Prévia</span>
+            <div id="stampPreview" class="stamp-preview empty">Prévia do carimbo</div>
+          </div>
+
+          <div class="tool-grid">
+            <button id="createStamp" class="btn primary">Salvar carimbo</button>
+            <button id="insertStamp" class="btn ghost">Adicionar no PDF</button>
+          </div>
         </div>
         <div id="stampList" class="stamp-list"></div>
-        <p class="hint">O carimbo pode ter texto, imagem ou os dois. Depois de adicionar no PDF, arraste e redimensione livremente.</p>
+        <p class="hint">Área separada para criar carimbos com texto, imagem/logo, estilo e cor. Depois é só adicionar no PDF, arrastar e redimensionar.</p>
       </section>
 
       <section class="card">

@@ -18,6 +18,8 @@ const brushSize = $('brushSize');
 const stampText = $('stampText');
 const stampImageInput = $('stampImageInput');
 const stampPreview = $('stampPreview');
+const stampShape = $('stampShape');
+const stampTheme = $('stampTheme');
 const createStampBtn = $('createStamp');
 const insertStampBtn = $('insertStamp');
 const stampList = $('stampList');
@@ -255,10 +257,23 @@ function redrawCurrentPage() {
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 }
 
+function getStampColors(theme = 'dark') {
+  const themes = {
+    dark: { ink: '#0f172a', bg: 'rgba(255,255,255,.94)', border: '#0f172a' },
+    blue: { ink: '#1e3a8a', bg: 'rgba(239,246,255,.96)', border: '#1d4ed8' },
+    green: { ink: '#166534', bg: 'rgba(240,253,244,.96)', border: '#16a34a' },
+    red: { ink: '#991b1b', bg: 'rgba(254,242,242,.96)', border: '#dc2626' }
+  };
+  return themes[theme] || themes.dark;
+}
 function buildStampHtml(stamp, mini = false) {
-  const img = stamp.image ? `<img src="${stamp.image}" alt="Imagem do carimbo">` : '';
-  const text = stamp.text ? `<span class="stamp-text">${escapeHtml(stamp.text)}</span>` : '';
-  return `<div class="stamp-card ${mini ? 'stamp-mini' : ''}">${img}${text}</div>`;
+  const colors = getStampColors(stamp.theme);
+  const shape = stamp.shape || 'rounded';
+  const img = stamp.image ? '<img src="' + stamp.image + '" alt="Imagem do carimbo">' : '';
+  const text = stamp.text ? '<span class="stamp-text">' + escapeHtml(stamp.text) + '</span>' : '';
+  const bg = shape === 'outline' ? 'rgba(255,255,255,.72)' : colors.bg;
+  const style = '--stamp-ink:' + colors.ink + ';--stamp-bg:' + bg + ';--stamp-border:' + colors.border + ';';
+  return '<div class="stamp-card ' + (mini ? 'stamp-mini' : '') + ' stamp-' + shape + '" style="' + style + '">' + img + text + '</div>';
 }
 function escapeHtml(str) {
   return String(str).replace(/[&<>"]/g, (m) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[m]));
@@ -271,7 +286,7 @@ function updateStampPreview() {
     return;
   }
   stampPreview.className = 'stamp-preview';
-  stampPreview.innerHTML = buildStampHtml({ text, image: currentStampImage });
+  stampPreview.innerHTML = buildStampHtml({ text, image: currentStampImage, shape: stampShape?.value || 'rounded', theme: stampTheme?.value || 'dark' });
 }
 function renderStampList() {
   stampList.innerHTML = '';
@@ -295,6 +310,8 @@ function renderStampList() {
 }
 
 stampText.addEventListener('input', updateStampPreview);
+stampShape?.addEventListener('change', updateStampPreview);
+stampTheme?.addEventListener('change', updateStampPreview);
 stampImageInput.addEventListener('change', (e) => {
   const file = e.target.files[0];
   if (!file) return;
@@ -305,7 +322,7 @@ stampImageInput.addEventListener('change', (e) => {
 createStampBtn.onclick = () => {
   const text = stampText.value.trim();
   if (!text && !currentStampImage) return showToast('Digite um texto ou adicione uma imagem no carimbo.');
-  const stamp = { id: safeId(), text, image: currentStampImage, createdAt: Date.now() };
+  const stamp = { id: safeId(), text, image: currentStampImage, shape: stampShape?.value || 'rounded', theme: stampTheme?.value || 'dark', createdAt: Date.now() };
   stamps.unshift(stamp);
   selectedStampId = stamp.id;
   saveStamps(); renderStampList();
@@ -415,13 +432,23 @@ function roundRect(ctx, x, y, w, h, r) {
 }
 async function drawStampOnCanvas(ctx, stamp, placed, width, height) {
   const x = placed.x * width, y = placed.y * height, w = placed.w * width, h = placed.h * height;
+  const shape = stamp.shape || 'rounded';
+  const colors = getStampColors(stamp.theme);
   ctx.save();
-  roundRect(ctx, x, y, w, h, Math.max(8, w * .035));
-  ctx.fillStyle = 'rgba(255,255,255,.92)';
+  const radius = shape === 'pill' ? h / 2 : Math.max(8, w * .035);
+  roundRect(ctx, x, y, w, h, radius);
+  ctx.fillStyle = shape === 'outline' ? 'rgba(255,255,255,.70)' : colors.bg;
   ctx.fill();
   ctx.lineWidth = Math.max(2, w * .012);
-  ctx.strokeStyle = '#0f172a';
+  ctx.strokeStyle = colors.border;
   ctx.stroke();
+  if (shape !== 'outline') {
+    ctx.globalAlpha = .10;
+    roundRect(ctx, x + w * .025, y + h * .12, w * .95, h * .76, radius * .72);
+    ctx.strokeStyle = colors.border;
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
   const pad = Math.max(6, w * .045);
   let textX = x + pad;
   if (stamp.image) {
@@ -438,10 +465,10 @@ async function drawStampOnCanvas(ctx, stamp, placed, width, height) {
     } catch {}
   }
   if (stamp.text) {
-    ctx.fillStyle = '#0f172a';
+    ctx.fillStyle = colors.ink;
     ctx.textBaseline = 'middle';
     ctx.textAlign = stamp.image ? 'left' : 'center';
-    ctx.font = `900 ${Math.max(9, Math.min(h * .36, w * .09))}px Arial, sans-serif`;
+    ctx.font = '900 ' + Math.max(9, Math.min(h * .36, w * .09)) + 'px Arial, sans-serif';
     const text = stamp.text.toUpperCase();
     const maxW = stamp.image ? Math.max(20, x + w - pad - textX) : w - pad * 2;
     const tx = stamp.image ? textX : x + w / 2;

@@ -25,6 +25,21 @@
         </div>
       </div>
 
+
+      <section class="card auth-card">
+        <h2>Conta / Nuvem</h2>
+        <div id="authStatus" class="auth-status warn">Entre na conta para sincronizar os carimbos na nuvem.</div>
+        <input id="authEmail" class="input" type="email" placeholder="E-mail" autocomplete="email" />
+        <input id="authPassword" class="input" type="password" placeholder="Senha" autocomplete="current-password" />
+        <div class="tool-grid">
+          <button id="loginBtn" class="btn primary">Entrar</button>
+          <button id="signupBtn" class="btn ghost">Criar conta</button>
+          <button id="logoutBtn" class="btn danger hidden">Sair</button>
+          <button id="syncStampsBtn" class="btn ghost">Sincronizar</button>
+        </div>
+        <p class="hint">Os carimbos continuam salvos no aparelho e, com login, também ficam salvos no Supabase para usar em outro PC ou celular.</p>
+      </section>
+
       <section class="card">
         <h2>1. PDF</h2>
         <label class="file-btn">
@@ -182,6 +197,7 @@
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="app.js"></script>
 </body>
 </html>

@@ -1,0 +1,29 @@
+ASSINAR PDF PRO - NUVEM SUPABASE
+
+Antes de usar a função de nuvem, crie a tabela no Supabase:
+
+create extension if not exists "uuid-ossp";
+
+create table if not exists carimbos (
+  id uuid default uuid_generate_v4() primary key,
+  user_id uuid not null,
+  nome text,
+  dados jsonb not null,
+  criado_em timestamp with time zone default now()
+);
+
+alter table carimbos enable row level security;
+
+drop policy if exists "user only" on carimbos;
+create policy "user only"
+on carimbos
+for all
+using (auth.uid() = user_id)
+with check (auth.uid() = user_id);
+
+No app:
+1. Abra o app.
+2. Crie conta ou faça login.
+3. Crie o carimbo.
+4. O app salva no navegador e também na nuvem.
+5. Em outro aparelho, faça login e clique em Sincronizar.

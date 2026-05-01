@@ -83,3 +83,17 @@ button, input, label { -webkit-tap-highlight-color: transparent; }
 .placed-stamp .stamp-card img{max-height:42%;max-width:48%;}
 .placed-stamp .stamp-card .stamp-text{font-size:clamp(7px, 1.7vw, 11px)!important}
 @media(max-width:760px){.stamp-card .stamp-text{font-size:10px!important}.stamp-card img{max-height:24px}.stamp-card{padding:7px 10px}}
+
+/* ===== Editor avançado de carimbo livre ===== */
+.legacy-stamp-text{display:none!important}
+.advanced-stamp-controls{display:grid;gap:8px;margin:10px 0 12px;padding:10px;border:1px solid rgba(255,255,255,.10);border-radius:16px;background:rgba(2,6,23,.38)}
+.control-row{display:grid;grid-template-columns:118px 1fr;align-items:center;gap:8px;font-size:11px;color:#cbd5e1;font-weight:800}
+.control-row input[type=range]{width:100%;accent-color:#22c55e}
+.custom-stamp-layout{position:relative!important;display:block!important;width:100%;height:100%;min-width:170px;min-height:86px;padding:0!important;overflow:hidden;text-align:center}
+.custom-stamp-layout .stamp-logo-free{position:absolute!important;transform:translate(-50%,-50%);height:auto!important;max-width:none!important;max-height:none!important;object-fit:contain;display:block;margin:0!important;background:transparent!important;padding:0!important;border-radius:0!important;z-index:1}
+.custom-stamp-layout .stamp-line{position:absolute;transform:translate(-50%,-50%);display:block;width:92%;color:var(--stamp-ink,#0f172a);font-weight:500!important;line-height:1!important;letter-spacing:.035em;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;z-index:2}
+.stamp-preview .custom-stamp-layout{width:230px;height:120px;min-width:230px;min-height:120px}
+.stamp-list-item .custom-stamp-layout{width:220px;height:92px;min-width:220px;min-height:92px}
+.placed-stamp .custom-stamp-layout{width:100%!important;height:100%!important;min-width:0!important;min-height:0!important}
+.placed-stamp .custom-stamp-layout .stamp-line{font-size:clamp(5px, 1.6vw, 18px)!important}
+@media(max-width:760px){.control-row{grid-template-columns:1fr;gap:4px}.advanced-stamp-controls{padding:9px}.stamp-preview .custom-stamp-layout{width:210px;height:110px;min-width:210px;min-height:110px}.stamp-list-item .custom-stamp-layout{width:190px;height:86px;min-width:190px;min-height:86px}}

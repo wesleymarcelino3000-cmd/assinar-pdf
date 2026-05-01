@@ -58,8 +58,43 @@
             </div>
           </div>
 
-          <label class="control-label">Texto do carimbo</label>
-          <input id="stampText" class="input" type="text" placeholder="Ex: APROVADO, RECEBIDO, CONFERIDO" />
+          <label class="control-label">Textos do carimbo</label>
+          <input id="stampText" class="input legacy-stamp-text" type="text" placeholder="Ex: APROVADO, RECEBIDO, CONFERIDO" />
+          <input id="stampLine1" class="input" type="text" placeholder="Texto 1 - Ex: INNO LIFE" />
+          <input id="stampLine2" class="input" type="text" placeholder="Texto 2 - Ex: CONFERIDO" />
+          <input id="stampLine3" class="input" type="text" placeholder="Texto 3 - Ex: RESPONSÁVEL" />
+
+          <div class="stamp-editor-grid">
+            <label>Fonte
+              <select id="stampFont" class="input select-input">
+                <option value="Arial">Arial</option>
+                <option value="Times New Roman">Times New Roman</option>
+                <option value="Georgia">Georgia</option>
+                <option value="Verdana">Verdana</option>
+                <option value="Courier New">Courier New</option>
+              </select>
+            </label>
+            <label>Letras
+              <select id="stampCase" class="input select-input">
+                <option value="upper">MAIÚSCULAS</option>
+                <option value="lower">minúsculas</option>
+                <option value="normal">Como digitado</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="advanced-stamp-controls">
+            <div class="control-row"><span>Tamanho da imagem</span><input id="stampImgSize" type="range" min="10" max="80" value="38"></div>
+            <div class="control-row"><span>Imagem horizontal</span><input id="stampImgX" type="range" min="5" max="95" value="50"></div>
+            <div class="control-row"><span>Imagem vertical</span><input id="stampImgY" type="range" min="8" max="55" value="24"></div>
+            <div class="control-row"><span>Tamanho da letra</span><input id="stampTextSize" type="range" min="6" max="24" value="10"></div>
+            <div class="control-row"><span>Texto 1 horizontal</span><input id="stampLine1X" type="range" min="5" max="95" value="50"></div>
+            <div class="control-row"><span>Texto 1 vertical</span><input id="stampLine1Y" type="range" min="40" max="88" value="56"></div>
+            <div class="control-row"><span>Texto 2 horizontal</span><input id="stampLine2X" type="range" min="5" max="95" value="50"></div>
+            <div class="control-row"><span>Texto 2 vertical</span><input id="stampLine2Y" type="range" min="45" max="94" value="69"></div>
+            <div class="control-row"><span>Texto 3 horizontal</span><input id="stampLine3X" type="range" min="5" max="95" value="50"></div>
+            <div class="control-row"><span>Texto 3 vertical</span><input id="stampLine3Y" type="range" min="50" max="97" value="82"></div>
+          </div>
 
           <label class="control-label">Imagem ou logo do carimbo</label>
           <label class="file-btn compact-file">

@@ -322,13 +322,38 @@ function buildStampHtml(stamp, mini = false) {
   const colors = getStampColors(stamp.theme);
   const shape = stamp.shape || 'real';
   const bg = shape === 'outline' ? 'rgba(255,255,255,.72)' : colors.bg;
-  const imgStyle = 'left:' + (stamp.imageX ?? 50) + '%;top:' + (stamp.imageY ?? 24) + '%;width:' + (stamp.imageSize ?? 38) + '%;';
-  const img = stamp.image ? '<img class="stamp-logo-free" src="' + stamp.image + '" alt="Imagem do carimbo" style="' + imgStyle + '">' : '';
   const font = escapeHtml(stamp.font || 'Arial');
-  const size = stamp.textSize ?? 10;
-  const lines = getStampLines(stamp).map((line, idx) => '<span class="stamp-line" style="left:' + (line.x ?? 50) + '%;top:' + (line.y ?? (56 + idx * 13)) + '%;font-family:"' + font + '", Arial, sans-serif;font-size:' + size + 'px;">' + escapeHtml(line.text) + '</span>').join('');
-  const style = '--stamp-ink:' + colors.ink + ';--stamp-bg:' + bg + ';--stamp-border:' + colors.border + ';';
-  return '<div class="stamp-card custom-stamp-layout ' + (mini ? 'stamp-mini' : '') + ' stamp-' + shape + '" style="' + style + '">' + img + lines + '</div>';
+  const size = Number(stamp.textSize ?? 10);
+  const imageSize = Number(stamp.imageSize ?? 38);
+  const stampStyle = [
+    '--stamp-ink:' + colors.ink,
+    '--stamp-bg:' + bg,
+    '--stamp-border:' + colors.border,
+    '--stamp-text-size:' + size + 'px',
+    '--stamp-image-size:' + imageSize + '%',
+    '--stamp-font:' + font
+  ].join(';') + ';';
+
+  const imgStyle = [
+    'left:' + Number(stamp.imageX ?? 50) + '%',
+    'top:' + Number(stamp.imageY ?? 24) + '%',
+    'width:' + imageSize + '%'
+  ].join(';') + ';';
+  const img = stamp.image ? '<img class="stamp-logo-free" src="' + stamp.image + '" alt="Imagem do carimbo" style="' + imgStyle + '">' : '';
+
+  const lines = getStampLines(stamp).map((line, idx) => {
+    const x = Number(line.x ?? 50);
+    const y = Number(line.y ?? (56 + idx * 13));
+    const lineStyle = [
+      'left:' + x + '%',
+      'top:' + y + '%',
+      'font-family:"' + font + '", Arial, sans-serif',
+      'font-size:' + size + 'px !important'
+    ].join(';') + ';';
+    return '<span class="stamp-line" style="' + lineStyle + '">' + escapeHtml(line.text) + '</span>';
+  }).join('');
+
+  return '<div class="stamp-card custom-stamp-layout ' + (mini ? 'stamp-mini' : '') + ' stamp-' + shape + '" style="' + stampStyle + '">' + img + lines + '</div>';
 }
 function escapeHtml(str) {
   return String(str).replace(/[&<>"']/g, (m) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
@@ -364,8 +389,11 @@ function renderStampList() {
   });
 }
 
-[stampText, stampLine1, stampLine2, stampLine3, stampFont, stampCase, stampImgSize, stampImgX, stampImgY, stampTextSize, stampLine1X, stampLine1Y, stampLine2X, stampLine2Y, stampLine3X, stampLine3Y].forEach(el => el?.addEventListener('input', updateStampPreview));
-[stampShape, stampTheme, stampFont, stampCase].forEach(el => el?.addEventListener('change', updateStampPreview));
+[stampText, stampLine1, stampLine2, stampLine3, stampFont, stampCase, stampImgSize, stampImgX, stampImgY, stampTextSize, stampLine1X, stampLine1Y, stampLine2X, stampLine2Y, stampLine3X, stampLine3Y, stampShape, stampTheme].forEach((el) => {
+  if (!el) return;
+  el.addEventListener('input', updateStampPreview);
+  el.addEventListener('change', updateStampPreview);
+});
 stampImageInput.addEventListener('change', (e) => {
   const file = e.target.files[0];
   if (!file) return;

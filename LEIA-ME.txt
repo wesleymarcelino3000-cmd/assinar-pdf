@@ -1,19 +1,13 @@
-ASSINAR PDF PRO - VERSÃO CORRIGIDA
-
-Correções desta versão:
-- Assinatura diretamente em cima do PDF
-- Funciona com mouse, touch e caneta
-- Canvas de assinatura corrigido por cima do PDF
-- Salvamento real dentro do PDF final
-- Borracha
-- Desfazer
-- Limpar página
-- PWA instalável para Vercel
+PDF Sign Pro - versão com editor de carimbo corrigido
 
 Como usar:
 1. Abra o index.html ou hospede no Vercel.
 2. Importe o PDF.
-3. Assine diretamente no documento.
-4. Clique em Baixar PDF assinado.
+3. Ative a caneta para assinar direto no PDF.
+4. No Estúdio de Carimbo, ajuste imagem, posição, fonte, tamanho, maiúsculas/minúsculas e salve o carimbo.
+5. Adicione no PDF, arraste/redimensione e baixe o PDF final.
 
-Se já hospedou uma versão anterior, depois de subir esta versão no Vercel limpe o cache do navegador ou abra em janela anônima.
+Correção desta versão:
+- Parâmetros do carimbo aplicando em tempo real na prévia.
+- Fonte, tamanho, posição da imagem e posição dos textos corrigidos.
+- Carimbo aplicado no PDF respeitando os parâmetros salvos.

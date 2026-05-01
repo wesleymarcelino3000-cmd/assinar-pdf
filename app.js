@@ -782,3 +782,166 @@ if ('serviceWorker' in navigator) window.addEventListener('load', () => navigato
 
 updateStampPreview();
 renderStampList();
+
+/* ===== NUVEM SUPABASE - CORREÇÃO CRIAR CONTA / LOGIN ===== */
+const SUPABASE_URL = 'https://eeqstdcdcbbjoafruiyx.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_GkM26dBx58T3XSPsKhaLRg_qxxkGCoy';
+let supabaseClient = null;
+let cloudUser = null;
+
+function setAuthStatus(message, type = 'warn') {
+  const el = document.getElementById('authStatus');
+  if (!el) return;
+  el.textContent = message;
+  el.className = 'auth-status ' + type;
+}
+
+function getAuthFields() {
+  const email = (document.getElementById('authEmail')?.value || '').trim();
+  const password = (document.getElementById('authPassword')?.value || '').trim();
+  return { email, password };
+}
+
+function initSupabaseCloud() {
+  if (!window.supabase || !window.supabase.createClient) {
+    setAuthStatus('Supabase não carregou. Verifique a internet ou hospede no Vercel.', 'err');
+    return false;
+  }
+  if (!supabaseClient) supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  return true;
+}
+
+function updateAuthUi(user) {
+  cloudUser = user || null;
+  const loginBtn = document.getElementById('loginBtn');
+  const signupBtn = document.getElementById('signupBtn');
+  const logoutBtn = document.getElementById('logoutBtn');
+  if (cloudUser) {
+    setAuthStatus('Conectado: ' + (cloudUser.email || 'usuário'), 'ok');
+    loginBtn?.classList.add('hidden');
+    signupBtn?.classList.add('hidden');
+    logoutBtn?.classList.remove('hidden');
+  } else {
+    setAuthStatus('Entre na conta para sincronizar os carimbos na nuvem.', 'warn');
+    loginBtn?.classList.remove('hidden');
+    signupBtn?.classList.remove('hidden');
+    logoutBtn?.classList.add('hidden');
+  }
+}
+
+async function checkSession() {
+  if (!initSupabaseCloud()) return;
+  const { data } = await supabaseClient.auth.getUser();
+  updateAuthUi(data?.user || null);
+}
+
+async function cloudSignup() {
+  if (!initSupabaseCloud()) return;
+  const { email, password } = getAuthFields();
+  if (!email || !password) return setAuthStatus('Digite e-mail e senha para criar a conta.', 'err');
+  if (password.length < 6) return setAuthStatus('A senha precisa ter pelo menos 6 caracteres.', 'err');
+  setAuthStatus('Criando conta...', 'warn');
+  try {
+    const { data, error } = await supabaseClient.auth.signUp({ email, password });
+    if (error) throw error;
+    if (data?.user && !data?.session) {
+      setAuthStatus('Conta criada. Se o Supabase pedir confirmação, confirme no e-mail antes de entrar.', 'warn');
+      showToast?.('Conta criada. Verifique o e-mail se necessário.');
+    } else {
+      updateAuthUi(data.user);
+      await cloudSyncStamps();
+      showToast?.('Conta criada e conectada.');
+    }
+  } catch (err) {
+    setAuthStatus('Erro ao criar conta: ' + (err.message || err), 'err');
+  }
+}
+
+async function cloudLogin() {
+  if (!initSupabaseCloud()) return;
+  const { email, password } = getAuthFields();
+  if (!email || !password) return setAuthStatus('Digite e-mail e senha para entrar.', 'err');
+  setAuthStatus('Entrando...', 'warn');
+  try {
+    const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+    if (error) throw error;
+    updateAuthUi(data.user);
+    await cloudSyncStamps();
+    showToast?.('Login realizado.');
+  } catch (err) {
+    setAuthStatus('Erro ao entrar: ' + (err.message || err), 'err');
+  }
+}
+
+async function cloudLogout() {
+  if (!initSupabaseCloud()) return;
+  await supabaseClient.auth.signOut();
+  updateAuthUi(null);
+  showToast?.('Conta desconectada.');
+}
+
+async function cloudSaveStamp(stamp) {
+  if (!initSupabaseCloud()) return false;
+  const { data } = await supabaseClient.auth.getUser();
+  const user = data?.user;
+  if (!user) return false;
+  const payload = { user_id: user.id, nome: stamp.name || stamp.text || 'Carimbo', dados: stamp };
+  const { error } = await supabaseClient.from('carimbos').insert(payload);
+  if (error) throw error;
+  return true;
+}
+
+async function cloudLoadStamps() {
+  if (!initSupabaseCloud()) return [];
+  const { data: userData } = await supabaseClient.auth.getUser();
+  const user = userData?.user;
+  if (!user) return [];
+  const { data, error } = await supabaseClient
+    .from('carimbos')
+    .select('id,nome,dados,criado_em')
+    .eq('user_id', user.id)
+    .order('criado_em', { ascending: false });
+  if (error) throw error;
+  return (data || []).map((row) => ({ ...(row.dados || {}), cloudId: row.id }));
+}
+
+async function cloudSyncStamps() {
+  if (!initSupabaseCloud()) return;
+  try {
+    const remote = await cloudLoadStamps();
+    let added = 0;
+    for (const item of remote) {
+      const exists = stamps.some((s) => s.cloudId === item.cloudId || (s.name === item.name && JSON.stringify(s.lines) === JSON.stringify(item.lines)));
+      if (!exists) { stamps.unshift({ ...item, id: item.id || safeId() }); added++; }
+    }
+    saveStamps();
+    renderStampList();
+    showToast?.(added ? `${added} carimbo(s) carregado(s) da nuvem.` : 'Carimbos sincronizados.');
+  } catch (err) {
+    setAuthStatus('Erro ao sincronizar: ' + (err.message || err), 'err');
+  }
+}
+
+// mantém salvamento local original e também envia para nuvem quando estiver logado
+if (typeof createStampBtn !== 'undefined' && createStampBtn) {
+  const originalCreateClick = createStampBtn.onclick;
+  createStampBtn.onclick = async (e) => {
+    if (typeof originalCreateClick === 'function') originalCreateClick.call(createStampBtn, e);
+    try {
+      const latest = stamps[0];
+      if (latest && cloudUser) {
+        await cloudSaveStamp(latest);
+        showToast?.('Carimbo salvo no aparelho e na nuvem.');
+      }
+    } catch (err) {
+      setAuthStatus('Carimbo salvo no aparelho, mas falhou na nuvem: ' + (err.message || err), 'err');
+    }
+  };
+}
+
+document.getElementById('signupBtn')?.addEventListener('click', cloudSignup);
+document.getElementById('loginBtn')?.addEventListener('click', cloudLogin);
+document.getElementById('logoutBtn')?.addEventListener('click', cloudLogout);
+document.getElementById('syncStampsBtn')?.addEventListener('click', cloudSyncStamps);
+
+window.addEventListener('load', checkSession);

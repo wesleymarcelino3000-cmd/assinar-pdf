@@ -241,21 +241,21 @@ guideBox.addEventListener('pointerdown', (e) => {
   guideBox.setPointerCapture?.(e.pointerId);
   resizingGuide = e.target.tagName === 'B';
   movingGuide = !resizingGuide;
-  guideStart = { x: e.clientX, y: e.clientY, ...guideRect };
+  guideStart = { pointerX: e.clientX, pointerY: e.clientY, rectX: guideRect.x, rectY: guideRect.y, rectW: guideRect.w, rectH: guideRect.h };
 }, { passive: false });
 window.addEventListener('pointermove', (e) => {
   if (movingStamp || resizingStamp) return moveOrResizeStamp(e);
   if (!movingGuide && !resizingGuide) return;
   e.preventDefault();
   const r = getCanvasRect();
-  const dx = (e.clientX - guideStart.x) / r.width;
-  const dy = (e.clientY - guideStart.y) / r.height;
+  const dx = (e.clientX - guideStart.pointerX) / r.width;
+  const dy = (e.clientY - guideStart.pointerY) / r.height;
   if (movingGuide) {
-    guideRect.x = Math.max(0, Math.min(1 - guideStart.w, guideStart.x + dx));
-    guideRect.y = Math.max(0, Math.min(1 - guideStart.h, guideStart.y + dy));
+    guideRect.x = Math.max(0, Math.min(1 - guideStart.rectW, guideStart.rectX + dx));
+    guideRect.y = Math.max(0, Math.min(1 - guideStart.rectH, guideStart.rectY + dy));
   } else {
-    guideRect.w = Math.max(.22, Math.min(1 - guideStart.x, guideStart.w + dx));
-    guideRect.h = Math.max(.07, Math.min(1 - guideStart.y, guideStart.h + dy));
+    guideRect.w = Math.max(.22, Math.min(1 - guideStart.rectX, guideStart.rectW + dx));
+    guideRect.h = Math.max(.07, Math.min(1 - guideStart.rectY, guideStart.rectH + dy));
   }
   positionGuideBox();
 }, { passive: false });
@@ -505,7 +505,7 @@ function startMoveStamp(e) {
   if (!placed) return;
   resizingStamp = e.target.closest?.('.resize-handle') ? placed.id : null;
   movingStamp = resizingStamp ? null : placed.id;
-  stampStart = { x: e.clientX, y: e.clientY, ...placed };
+  stampStart = { pointerX: e.clientX, pointerY: e.clientY, startX: placed.x, startY: placed.y, startW: placed.w, startH: placed.h };
   stampLayer.querySelectorAll('.placed-stamp.editing').forEach((item) => item.classList.remove('editing'));
   box.classList.add('editing');
 }
@@ -516,14 +516,14 @@ function moveOrResizeStamp(e) {
   const id = movingStamp || resizingStamp;
   const placed = getPlacedStamp(currentPage, id);
   if (!placed) return;
-  const dx = (e.clientX - stampStart.x) / r.width;
-  const dy = (e.clientY - stampStart.y) / r.height;
+  const dx = (e.clientX - stampStart.pointerX) / r.width;
+  const dy = (e.clientY - stampStart.pointerY) / r.height;
   if (movingStamp) {
-    placed.x = Math.max(0, Math.min(1 - stampStart.w, stampStart.x + dx));
-    placed.y = Math.max(0, Math.min(1 - stampStart.h, stampStart.y + dy));
+    placed.x = Math.max(0, Math.min(1 - stampStart.startW, stampStart.startX + dx));
+    placed.y = Math.max(0, Math.min(1 - stampStart.startH, stampStart.startY + dy));
   } else {
-    placed.w = Math.max(.14, Math.min(1 - stampStart.x, stampStart.w + dx));
-    placed.h = Math.max(.055, Math.min(1 - stampStart.y, stampStart.h + dy));
+    placed.w = Math.max(.14, Math.min(1 - stampStart.startX, stampStart.startW + dx));
+    placed.h = Math.max(.055, Math.min(1 - stampStart.startY, stampStart.startH + dy));
   }
   const el = stampLayer.querySelector(`[data-id="${id}"]`);
   if (el) {

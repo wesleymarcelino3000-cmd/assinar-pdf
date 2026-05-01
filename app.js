@@ -170,6 +170,8 @@ function getPoint(e) {
   return {
     x: Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)),
     y: Math.max(0, Math.min(1, (e.clientY - r.top) / r.height)),
+    t: performance.now(),
+    pressure: typeof e.pressure === 'number' && e.pressure > 0 ? e.pressure : null
   };
 }
 function inGuide(p) {
@@ -200,7 +202,12 @@ function startStroke(e) {
   e.preventDefault();
   drawCanvas.setPointerCapture?.(e.pointerId);
   drawing = true;
-  activeStroke = { tool, widthNorm: tool === 'eraser' ? getCurrentBrushWidthNorm() * 3.1 : getCurrentBrushWidthNorm(), points: [p] };
+  activeStroke = {
+    tool,
+    widthNorm: tool === 'eraser' ? getCurrentBrushWidthNorm() * 3.1 : getCurrentBrushWidthNorm(),
+    inkTexture: tool === 'pen',
+    points: [p]
+  };
   if (!strokesByPage[currentPage]) strokesByPage[currentPage] = [];
   strokesByPage[currentPage].push(activeStroke);
   redrawCurrentPage();
@@ -267,26 +274,91 @@ window.addEventListener('pointerup', () => {
 });
 window.addEventListener('pointercancel', () => { movingStamp = null; resizingStamp = null; stampStart = null; });
 
+function inkNoise(seed) {
+  const v = Math.sin(seed * 12.9898) * 43758.5453;
+  return v - Math.floor(v);
+}
+
+function drawRoundDot(ctx, x, y, radius, alpha, color) {
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.arc(x, y, Math.max(0.25, radius), 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
 function drawStrokeOnCanvas(ctx, stroke, width, height) {
   const pts = stroke.points;
   if (!pts || !pts.length) return;
   ctx.save();
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
-  ctx.lineWidth = Math.max(1, stroke.widthNorm * width);
-  if (stroke.tool === 'eraser') { ctx.globalCompositeOperation = 'destination-out'; ctx.strokeStyle = 'rgba(0,0,0,1)'; }
-  else { ctx.globalCompositeOperation = 'source-over'; ctx.strokeStyle = '#020617'; }
-  ctx.beginPath();
-  ctx.moveTo(pts[0].x * width, pts[0].y * height);
-  if (pts.length === 1) ctx.lineTo(pts[0].x * width + 0.1, pts[0].y * height + 0.1);
-  else {
+
+  const baseWidth = Math.max(0.65, stroke.widthNorm * width);
+
+  if (stroke.tool === 'eraser') {
+    ctx.globalCompositeOperation = 'destination-out';
+    ctx.strokeStyle = 'rgba(0,0,0,1)';
+    ctx.lineWidth = Math.max(2, baseWidth);
+    ctx.beginPath();
+    ctx.moveTo(pts[0].x * width, pts[0].y * height);
     for (let i = 1; i < pts.length; i++) {
       const prev = pts[i - 1]; const cur = pts[i];
       ctx.quadraticCurveTo(prev.x * width, prev.y * height, ((prev.x + cur.x) / 2) * width, ((prev.y + cur.y) / 2) * height);
     }
-    const last = pts[pts.length - 1]; ctx.lineTo(last.x * width, last.y * height);
+    ctx.stroke();
+    ctx.restore();
+    return;
   }
-  ctx.stroke(); ctx.restore();
+
+  ctx.globalCompositeOperation = 'source-over';
+  const inkColor = '#020617';
+
+  // Caneta realista: pressão variável + textura de tinta + pequenas falhas.
+  if (pts.length === 1) {
+    drawRoundDot(ctx, pts[0].x * width, pts[0].y * height, baseWidth * 0.45, 0.82, inkColor);
+    ctx.restore();
+    return;
+  }
+
+  for (let i = 1; i < pts.length; i++) {
+    const a = pts[i - 1];
+    const b = pts[i];
+    const ax = a.x * width, ay = a.y * height;
+    const bx = b.x * width, by = b.y * height;
+    const dx = bx - ax, dy = by - ay;
+    const dist = Math.max(0.01, Math.hypot(dx, dy));
+    const dt = Math.max(8, (b.t || 0) - (a.t || 0));
+    const speed = dist / dt;
+    const realPressure = b.pressure || a.pressure;
+    const speedPressure = Math.max(0.45, Math.min(1.25, 1.18 - speed * 0.55));
+    const pressure = realPressure ? (0.55 + realPressure * 0.85) : speedPressure;
+    const segmentWidth = Math.max(0.55, baseWidth * pressure);
+
+    const steps = Math.max(2, Math.ceil(dist / Math.max(1.4, segmentWidth * 0.45)));
+    for (let s = 0; s <= steps; s++) {
+      const t = s / steps;
+      const x = ax + dx * t;
+      const y = ay + dy * t;
+      const n = inkNoise(i * 97 + s * 13 + Math.round(width));
+
+      // Falha curta de tinta em alguns pontos, sem quebrar demais a assinatura.
+      if (n > 0.925 && dist > 2.5) continue;
+
+      const alpha = Math.max(0.42, Math.min(0.92, 0.76 + (inkNoise(i * 41 + s * 7) - 0.5) * 0.28));
+      const radius = segmentWidth * (0.34 + inkNoise(i * 19 + s * 31) * 0.18);
+      drawRoundDot(ctx, x, y, radius, alpha, inkColor);
+
+      // Microtextura lateral, imitando tinta irregular no papel.
+      if (n > 0.72) {
+        const off = (inkNoise(i * 53 + s * 29) - 0.5) * segmentWidth * 0.9;
+        drawRoundDot(ctx, x + off, y - off * 0.25, radius * 0.38, alpha * 0.28, inkColor);
+      }
+    }
+  }
+  ctx.restore();
 }
 function redrawCurrentPage() {
   const dpr = window.devicePixelRatio || 1;

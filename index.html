@@ -49,7 +49,23 @@
       </section>
 
       <section class="card">
-        <h2>3. Exportar</h2>
+        <h2>3. Carimbo</h2>
+        <input id="stampText" class="input" type="text" placeholder="Texto do carimbo. Ex: APROVADO" />
+        <label class="file-btn compact-file">
+          <input id="stampImageInput" type="file" accept="image/png,image/jpeg,image/webp" />
+          Adicionar imagem no carimbo
+        </label>
+        <div id="stampPreview" class="stamp-preview empty">Prévia do carimbo</div>
+        <div class="tool-grid">
+          <button id="createStamp" class="btn primary">Criar carimbo</button>
+          <button id="insertStamp" class="btn ghost">Adicionar no PDF</button>
+        </div>
+        <div id="stampList" class="stamp-list"></div>
+        <p class="hint">O carimbo pode ter texto, imagem ou os dois. Depois de adicionar no PDF, arraste e redimensione livremente.</p>
+      </section>
+
+      <section class="card">
+        <h2>4. Exportar</h2>
         <div class="row stack-mobile">
           <button id="downloadPdf" class="btn success">Baixar PDF assinado</button>
           <button id="resetAll" class="btn danger">Limpar tudo</button>
@@ -81,6 +97,7 @@
           </div>
           <div id="pdfStage" class="pdf-stage">
             <canvas id="pdfCanvas"></canvas>
+            <div id="stampLayer"></div>
             <canvas id="drawCanvas"></canvas>
             <div id="guideBox" class="guide-box hidden"><span>Assine aqui</span><b></b></div>
           </div>

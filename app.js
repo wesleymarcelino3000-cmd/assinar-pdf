@@ -945,3 +945,24 @@ document.getElementById('logoutBtn')?.addEventListener('click', cloudLogout);
 document.getElementById('syncStampsBtn')?.addEventListener('click', cloudSyncStamps);
 
 window.addEventListener('load', checkSession);
+
+// Animação visual ao clicar nos botões, sem alterar nenhuma função existente
+(function setupButtonClickAnimations(){
+  document.addEventListener('pointerdown', (event) => {
+    const btn = event.target.closest('button, .btn, .file-btn');
+    if (!btn || btn.disabled) return;
+
+    btn.classList.remove('click-animate');
+    void btn.offsetWidth;
+    btn.classList.add('click-animate');
+    setTimeout(() => btn.classList.remove('click-animate'), 360);
+
+    const rect = btn.getBoundingClientRect();
+    const ripple = document.createElement('span');
+    ripple.className = 'btn-ripple';
+    ripple.style.left = `${event.clientX - rect.left}px`;
+    ripple.style.top = `${event.clientY - rect.top}px`;
+    btn.appendChild(ripple);
+    setTimeout(() => ripple.remove(), 620);
+  }, { passive: true });
+})();
